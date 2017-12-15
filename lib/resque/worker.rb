@@ -220,7 +220,12 @@ module Resque
             rescue SystemCallError
               nil
             end
-            job.fail(DirtyExit.new("Child process received unhandled signal #{$?.stopsig}")) if $?.signaled?
+            job.fail(DirtyExit.new(<<~EOM)) if $?.signaled?
+              Child process received unhandled signal: #{$?.stopsig.present? ? $?.stopsig : 'unknown'},
+              term signal: #{$?.termsig.present? ? $?.termsig : 'unknown'},
+              process exit info is #{$?.exited?} #{$?.exitstatus},
+              general process info is #{$?.to_s}
+            EOM
           else
             unregister_signal_handlers if will_fork? && term_child
             begin
